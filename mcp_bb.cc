@@ -122,14 +122,27 @@ int mcp_bb(const vector<vector<int>> &matrix, int rows, int cols)
         Node node = liveNodes.top();
         liveNodes.pop();
 
-        if (node.cost < solution)
+        if (node.x == rows - 1 && node.y == cols - 1)
         {
-            solution = node.cost;
+            if (node.cost < solution)
+            {
+                nbest_solution_updated_from_leafs++;
+                solution = node.cost;
+            }
+        }
+        else
+        {
+            if (node.pessimistic_bound < solution)
+            {
+                nbest_solution_updated_from_pessimistic_bound++;
+                solution = node.pessimistic_bound;
+            }
         }
 
         vector<pair<int, int>> directions = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}};
         for (auto &direction : directions)
         {
+            nvisit++;
             int new_x = node.x + direction.first;
             int new_y = node.y + direction.second;
 
@@ -146,9 +159,18 @@ int mcp_bb(const vector<vector<int>> &matrix, int rows, int cols)
 
                 if (child.optimistic_bound < solution && child.optimistic_bound < best_pessimistic_bound)
                 {
+                    nexplored++;
                     liveNodes.push(child);
                     best_pessimistic_bound = min(best_pessimistic_bound, child.pessimistic_bound);
                 }
+                else
+                {
+                    nnot_promising++;
+                }
+            }
+            else
+            {
+                nunfeasible++;
             }
         }
     }
