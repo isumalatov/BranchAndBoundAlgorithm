@@ -108,13 +108,11 @@ int mcp_bb(const vector<vector<int>> &matrix, int rows, int cols)
     priority_queue<Node, vector<Node>, CompareCost> liveNodes;
 
     int min_val = find_min_val(matrix, rows, cols);
-    int solution = numeric_limits<int>::max();
 
-    int best_pessimistic_bound = INT_MAX;
     Node root(0, 0, matrix[0][0], 0, 0, {{0, 0}});
     root.optimistic_bound = mcp_optimistic(matrix, rows, cols, root.x, root.y, min_val);
     root.pessimistic_bound = mcp_pessimistic(matrix, rows, cols, root.x, root.y);
-    best_pessimistic_bound = min(best_pessimistic_bound, root.pessimistic_bound);
+    int solution = root.pessimistic_bound;
     liveNodes.push(root);
 
     while (!liveNodes.empty())
@@ -122,21 +120,21 @@ int mcp_bb(const vector<vector<int>> &matrix, int rows, int cols)
         Node node = liveNodes.top();
         liveNodes.pop();
 
+        if (node.optimistic_bound >= solution)
+        {
+            npromising_but_discarded++;
+            continue;
+        }
+
         if (node.x == rows - 1 && node.y == cols - 1)
         {
+            nleaf++;
             if (node.cost < solution)
             {
                 nbest_solution_updated_from_leafs++;
                 solution = node.cost;
             }
-        }
-        else
-        {
-            if (node.pessimistic_bound < solution)
-            {
-                nbest_solution_updated_from_pessimistic_bound++;
-                solution = node.pessimistic_bound;
-            }
+            continue;
         }
 
         vector<pair<int, int>> directions = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}};
@@ -148,20 +146,19 @@ int mcp_bb(const vector<vector<int>> &matrix, int rows, int cols)
 
             if (new_x < rows && new_y < cols && new_x >= 0 && new_y >= 0)
             {
-                vector<pair<int, int>> new_path = node.path;
-                new_path.push_back({new_x, new_y});
-
                 int new_cost = node.cost + matrix[new_x][new_y];
                 int new_optimistic_bound = mcp_optimistic(matrix, rows, cols, new_x, new_y, min_val);
                 int new_pessimistic_bound = mcp_pessimistic(matrix, rows, cols, new_x, new_y);
 
-                Node child(new_x, new_y, new_cost, new_optimistic_bound, new_pessimistic_bound, new_path);
-
-                if (child.optimistic_bound < solution && child.optimistic_bound < best_pessimistic_bound)
+                if (new_pessimistic_bound < solution)
+                {
+                    nbest_solution_updated_from_pessimistic_bound++;
+                    solution = new_pessimistic_bound;
+                }
+                if (new_optimistic_bound < solution)
                 {
                     nexplored++;
-                    liveNodes.push(child);
-                    best_pessimistic_bound = min(best_pessimistic_bound, child.pessimistic_bound);
+                    liveNodes.push(Node(new_x, new_y, new_cost, new_optimistic_bound, new_pessimistic_bound, node.path));
                 }
                 else
                 {
