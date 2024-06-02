@@ -21,50 +21,38 @@ int npromising_but_discarded = 0;
 int nbest_solution_updated_from_leafs = 0;
 int nbest_solution_updated_from_pessimistic_bound = 0;
 
-int mcp_pessimistic(const vector<vector<int>> &matrix, int rows, int cols, int pos_x, int pos_y)
+int mcp_pessimistic(const vector<vector<int>> &matrix, vector<pair<int, int>> &best_path, int rows, int cols)
 {
-    int x = pos_x;
-    int y = pos_y;
-    int count = matrix[x][y];
-    do
+    int i = 0, j = 0;
+    int coste_origen_destino = matrix[i][j];
+
+    best_path.push_back({i, j});
+
+    while (i != rows - 1 || j != cols - 1)
     {
-        if (x == rows - 1 && y == cols - 1)
+        int abajo = (i < rows - 1) ? matrix[i + 1][j] : INT_MAX;
+        int derecha = (j < cols - 1) ? matrix[i][j + 1] : INT_MAX;
+        int diagonal = (i < rows - 1 && j < cols - 1) ? matrix[i + 1][j + 1] : INT_MAX;
+
+        if (diagonal <= derecha && diagonal <= abajo)
         {
-            return count;
+            i++;
+            j++;
         }
-        int right = INT_MAX;
-        int down = INT_MAX;
-        int diag = INT_MAX;
-        if (y < cols - 1)
+        else if (derecha <= abajo)
         {
-            right = matrix[x][y + 1];
+            j++;
         }
-        if (x < rows - 1)
+        else
         {
-            down = matrix[x + 1][y];
+            i++;
         }
-        if (x < rows - 1 && y < cols - 1)
-        {
-            diag = matrix[x + 1][y + 1];
-        }
-        int minimo = min(right, min(down, diag));
-        if (minimo == diag)
-        {
-            x++;
-            y++;
-            count += diag;
-        }
-        else if (minimo == right)
-        {
-            y++;
-            count += right;
-        }
-        else if (minimo == down)
-        {
-            x++;
-            count += down;
-        }
-    } while (true);
+
+        best_path.push_back({i, j});
+        coste_origen_destino += matrix[i][j];
+    }
+
+    return coste_origen_destino;
 }
 
 int find_min_val(const vector<vector<int>> &matrix, int rows, int cols)
@@ -109,20 +97,14 @@ int mcp_bb(const vector<vector<int>> &matrix, vector<pair<int, int>> &best_path,
     unordered_set<string> visited;
 
     int min_val = find_min_val(matrix, rows, cols);
+    int solution = mcp_pessimistic(matrix, best_path, rows, cols);
     Node root(0, 0, matrix[0][0], {{0, 0}});
-    int solution = mcp_pessimistic(matrix, rows, cols, 0, 0);
     liveNodes.push(root);
 
     while (!liveNodes.empty())
     {
         Node node = liveNodes.top();
         liveNodes.pop();
-
-        if (node.cost + mcp_optimistic(matrix, node.x, node.y, rows, cols, min_val) > solution)
-        {
-            npromising_but_discarded++;
-            continue;
-        }
 
         if (node.x == rows - 1 && node.y == cols - 1)
         {
@@ -230,8 +212,6 @@ int main(int argc, char *argv[])
     }
 
     vector<pair<int, int>> best_path;
-    vector<pair<int, int>> new_path = {{0, 0}};
-    best_path = new_path;
     auto start = chrono::high_resolution_clock::now();
     int best_v = mcp_bb(matrix, best_path, rows, cols);
     auto end = chrono::high_resolution_clock::now();
