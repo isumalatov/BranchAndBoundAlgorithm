@@ -4,6 +4,9 @@
         "string_view": "cpp",
         "span": "cpp",
         "unordered_set": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "chrono": "cpp",
+        "iostream": "cpp",
+        "ostream": "cpp"
     }
 }
